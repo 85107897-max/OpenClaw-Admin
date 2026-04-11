@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import db from '../database.js'
-import { requirePermission } from '../auth.js'
-import { getAuditLogs, getAuditLogById, getAuditLogStatistics } from '../auth.js'
+import { requirePermission, requireRole } from '../auth.js'
+import { getAuditLogs, getAuditLogById, getAuditLogStatistics } from '../database.js'
 
 const router = Router()
 

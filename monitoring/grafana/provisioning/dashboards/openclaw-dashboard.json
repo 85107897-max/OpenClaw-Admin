@@ -1,94 +1,189 @@
 {
   "dashboard": {
+    "id": null,
+    "uid": "openclaw-performance",
     "title": "OpenClaw 性能监控面板",
-    "tags": ["openclaw", "performance"],
+    "tags": ["openclaw", "performance", "docker"],
     "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "5s",
     "panels": [
       {
         "id": 1,
         "title": "CPU 使用率",
         "type": "graph",
         "datasource": "Prometheus",
+        "datasourceUid": "prometheus-uid",
         "targets": [
           {
             "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
-            "legendFormat": "{{instance}}"
+            "legendFormat": "{{instance}}",
+            "refId": "A"
           }
         ],
-        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8}
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "options": {
+          "legend": {"show": true},
+          "tooltip": {"mode": "single"}
+        }
       },
       {
         "id": 2,
         "title": "内存使用率",
         "type": "graph",
         "datasource": "Prometheus",
+        "datasourceUid": "prometheus-uid",
         "targets": [
           {
             "expr": "(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100",
-            "legendFormat": "{{instance}}"
+            "legendFormat": "{{instance}}",
+            "refId": "A"
           }
         ],
-        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8}
+        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+        "options": {
+          "legend": {"show": true},
+          "tooltip": {"mode": "single"}
+        }
       },
       {
         "id": 3,
         "title": "磁盘使用率",
         "type": "graph",
         "datasource": "Prometheus",
+        "datasourceUid": "prometheus-uid",
         "targets": [
           {
             "expr": "(node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"}) * 100",
-            "legendFormat": "{{instance}}"
+            "legendFormat": "{{instance}}",
+            "refId": "A"
           }
         ],
-        "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8}
+        "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+        "options": {
+          "legend": {"show": true},
+          "tooltip": {"mode": "single"}
+        }
       },
       {
         "id": 4,
         "title": "网络流量",
         "type": "graph",
         "datasource": "Prometheus",
+        "datasourceUid": "prometheus-uid",
         "targets": [
           {
-            "expr": "irate(node_network_receive_bytes_total[5m])",
-            "legendFormat": "RX {{device}}"
+            "expr": "irate(node_network_receive_bytes_total{device!=\"lo\"}[5m])",
+            "legendFormat": "RX {{device}}",
+            "refId": "A"
           },
           {
-            "expr": "irate(node_network_transmit_bytes_total[5m])",
-            "legendFormat": "TX {{device}}"
+            "expr": "irate(node_network_transmit_bytes_total{device!=\"lo\"}[5m])",
+            "legendFormat": "TX {{device}}",
+            "refId": "B"
           }
         ],
-        "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8}
+        "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+        "options": {
+          "legend": {"show": true},
+          "tooltip": {"mode": "single"}
+        }
       },
       {
         "id": 5,
-        "title": "容器资源使用",
+        "title": "容器 CPU 使用",
         "type": "graph",
         "datasource": "Prometheus",
+        "datasourceUid": "prometheus-uid",
         "targets": [
           {
-            "expr": "rate(container_cpu_usage_seconds_total{name!=\"\"}[5m])",
-            "legendFormat": "{{name}}"
+            "expr": "rate(container_cpu_usage_seconds_total{name!=\"\"}[5m]) * 100",
+            "legendFormat": "{{name}}",
+            "refId": "A"
           }
         ],
-        "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8}
+        "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+        "options": {
+          "legend": {"show": true},
+          "tooltip": {"mode": "single"}
+        }
       },
       {
         "id": 6,
+        "title": "容器内存使用",
+        "type": "graph",
+        "datasource": "Prometheus",
+        "datasourceUid": "prometheus-uid",
+        "targets": [
+          {
+            "expr": "container_memory_usage_bytes{name!=\"\"} / 1024 / 1024",
+            "legendFormat": "{{name}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+        "options": {
+          "legend": {"show": true},
+          "tooltip": {"mode": "single"}
+        }
+      },
+      {
+        "id": 7,
         "title": "服务状态",
         "type": "stat",
         "datasource": "Prometheus",
+        "datasourceUid": "prometheus-uid",
         "targets": [
           {
             "expr": "up",
-            "legendFormat": "{{job}}"
+            "legendFormat": "{{job}}",
+            "refId": "A"
           }
         ],
-        "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8}
+        "gridPos": {"x": 0, "y": 24, "w": 12, "h": 8},
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          },
+          "textMode": "auto"
+        }
+      },
+      {
+        "id": 8,
+        "title": "活跃容器数量",
+        "type": "stat",
+        "datasource": "Prometheus",
+        "datasourceUid": "prometheus-uid",
+        "targets": [
+          {
+            "expr": "count(container_last_seen{name!=\"\"})",
+            "legendFormat": "Containers",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"x": 12, "y": 24, "w": 12, "h": 8},
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          },
+          "textMode": "auto"
+        }
       }
     ],
-    "refresh": "5s",
-    "schemaVersion": 16,
-    "version": 1
-  }
+    "links": []
+  },
+  "overwrite": true
 }

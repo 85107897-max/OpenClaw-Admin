@@ -1,441 +1,395 @@
-# 需求文档：批量操作功能
+# 批量操作功能需求文档
 
-**文档编号**: REQ-005  
-**优先级**: P1 - 高  
-**状态**: 需求分析完成  
-**创建日期**: 2026-04-10  
-**负责人**: 前端开发 + 后端开发
+**文档版本**: v1.0  
+**创建日期**: 2026-04-12  
+**作者**: 产品经理  
+**状态**: 待评审  
+**优先级**: P0 - 最高优先级
 
 ---
 
-## 一、功能描述
+## 一、需求概述
 
 ### 1.1 背景
-
-当前 OpenClaw-Admin 系统缺乏批量操作能力，用户在以下场景需要逐个操作，效率低下：
-
-1. **会话管理**：需要逐个删除过期会话、逐个导出会话数据
-2. **技能管理**：需要逐个启用/禁用技能、逐个更新技能配置
-3. **渠道管理**：需要逐个启停渠道、逐个修改渠道配置
-4. **模型管理**：需要逐个配置模型参数、逐个测试模型连接
-5. **定时任务**：需要逐个启停任务、逐个查看任务历史
-
-用户反馈显示，在管理 50+ 个会话或技能时，批量操作缺失导致运维时间增加 5-10 倍。
+当前系统已完成的 Cron 可视化编辑器功能支持单个任务的创建、编辑和删除。随着用户任务数量增加，缺乏批量操作能力导致管理效率低下。用户需要能够一次性对多个任务执行相同操作，提升工作效率。
 
 ### 1.2 目标
+- 支持用户通过复选框选择多个任务
+- 支持全选/反选功能
+- 支持批量删除任务
+- 支持批量状态变更（启用/禁用）
+- 提供批量操作确认对话框，防止误操作
+- 操作完成后提供明确的结果反馈
 
-- 为所有列表页面添加批量操作能力
-- 支持多选、全选、反选等操作
-- 提供批量删除、批量启用/禁用、批量导出等功能
-- 批量操作支持进度显示和错误处理
-- 提升运维效率，减少重复操作
+### 1.3 用户故事
+- **作为** 系统管理员
+- **我希望** 能够批量选择并删除多个不需要的定时任务
+- **这样** 我可以快速清理无用任务，保持任务列表整洁
+
+- **作为** 运维人员
+- **我希望** 能够批量启用或禁用多个任务
+- **这样** 我可以快速调整任务执行状态，无需逐个操作
 
 ---
 
 ## 二、功能需求
 
-### 2.1 批量选择功能
+### 2.1 复选框与选择功能
 
-#### 2.1.1 选择方式
+#### 2.1.1 单行复选框
+- **位置**: 任务列表每行最左侧
+- **样式**: 标准复选框组件，选中状态明显
+- **行为**:
+  - 点击复选框选中/取消选中当前行
+  - 选中后该行高亮显示（背景色变化）
+  - 选中状态与任务 ID 关联
 
+#### 2.1.2 全选功能
+- **位置**: 任务列表表头复选框
+- **行为**:
+  - 点击全选复选框，选中当前页所有任务
+  - 再次点击取消全选
+  - 当前页无任务时，复选框置灰不可点击
+  - 显示已选中数量：`已选择 X 项`
+
+#### 2.1.3 反选功能
+- **位置**: 批量操作工具栏
+- **行为**: 反转当前页所有任务的选中状态
+
+#### 2.1.4 选择状态显示
+- **位置**: 批量操作工具栏
+- **内容**: `已选择 X 项`（X 为选中数量）
+- **样式**: 选中数量 > 0 时显示，否则隐藏
+
+### 2.2 批量删除功能
+
+#### 2.2.1 触发条件
+- 至少选中 1 个任务
+- 点击"批量删除"按钮
+
+#### 2.2.2 确认对话框
+- **标题**: `确认批量删除`
+- **内容**: `确定要删除选中的 X 个任务吗？此操作不可恢复！`
+- **按钮**:
+  - `取消`（次要按钮）
+  - `删除`（危险按钮，红色）
+- **二次确认**: 当删除数量 > 5 时，要求输入删除的任务数量进行二次确认
+
+#### 2.2.3 删除行为
+- 调用后端批量删除 API
+- 显示删除进度（删除中... X/Y）
+- 删除完成后显示结果：
+  - 成功：`成功删除 X 个任务`
+  - 部分失败：`成功删除 X 个，失败 Y 个`（显示失败详情）
+
+### 2.3 批量状态变更功能
+
+#### 2.3.1 触发条件
+- 至少选中 1 个任务
+- 点击"批量启用"或"批量禁用"按钮
+
+#### 2.3.2 确认对话框
+- **标题**: `确认批量{操作类型}`
+- **内容**: `确定要将选中的 X 个任务{操作类型}吗？`
+- **按钮**:
+  - `取消`（次要按钮）
+  - `确认`（主要按钮，蓝色）
+
+#### 2.3.3 状态变更行为
+- 调用后端批量状态变更 API
+- 显示变更进度
+- 完成后显示结果并刷新列表
+
+### 2.4 批量操作工具栏
+
+#### 2.4.1 工具栏位置
+- **位置**: 任务列表上方，固定显示
+- **显示条件**: 有选中项时显示
+
+#### 2.4.2 工具栏内容
 ```
 ┌─────────────────────────────────────────────────────┐
-│  ☐ 全选   已选择 3/50 项   [反选] [清空]             │
-├─────────────────────────────────────────────────────┤
-│  ☐  [会话名称]    [状态]    [创建时间]    [操作]    │
-│  ☐  会话 A         活跃      2026-04-10    [...]     │
-│  ☑  会话 B         活跃      2026-04-09    [...]     │
-│  ☑  会话 C         已结束    2026-04-08    [...]     │
-│  ☐  会话 D         活跃      2026-04-07    [...]     │
-│  ☑  会话 E         已结束    2026-04-06    [...]     │
+│ 已选择 3 项    [批量删除]  [批量启用]  [批量禁用]  [取消选择] │
 └─────────────────────────────────────────────────────┘
 ```
 
-**选择操作**：
-- **全选**：选择当前页所有项（或全部数据）
-- **单选**：点击复选框选择单项
-- **反选**：切换所有项的选择状态
-- **清空**：取消所有选择
-- **范围选择**：Shift+ 点击选择连续范围
-
-#### 2.1.2 跨页选择
-
-```
-已选择 3 项（当前页）
-┌─────────────────────────────────┐
-│ 是否选择所有 50 项？              │
-│ [仅当前页 3 项] [全部 50 项]       │
-└─────────────────────────────────┘
-```
-
-### 2.2 批量操作类型
-
-#### 2.2.1 会话管理批量操作
-
-| 操作 | 说明 | 确认要求 |
-|------|------|----------|
-| 批量删除 | 删除选中的会话及关联数据 | 二次确认 |
-| 批量导出 | 导出选中会话为 JSON/CSV | 选择格式 |
-| 批量归档 | 将选中会话标记为归档 | - |
-| 批量重置 | 重置选中会话的上下文 | 二次确认 |
-| 批量标记 | 批量添加标签/分类 | 选择标签 |
-
-#### 2.2.2 技能管理批量操作
-
-| 操作 | 说明 | 确认要求 |
-|------|------|----------|
-| 批量启用 | 启用选中的技能 | - |
-| 批量禁用 | 禁用选中的技能 | - |
-| 批量更新 | 更新选中技能到最新版本 | 显示变更日志 |
-| 批量卸载 | 卸载选中的技能 | 二次确认 |
-| 批量配置 | 批量修改技能配置参数 | 配置模板 |
-
-#### 2.2.3 渠道管理批量操作
-
-| 操作 | 说明 | 确认要求 |
-|------|------|----------|
-| 批量启用 | 启用选中的渠道 | - |
-| 批量禁用 | 禁用选中的渠道 | - |
-| 批量测试 | 测试选中渠道的连接状态 | 显示测试结果 |
-| 批量导出 | 导出渠道配置 | 选择格式 |
-| 批量导入 | 批量导入渠道配置 | 文件上传 |
-
-#### 2.2.4 模型管理批量操作
-
-| 操作 | 说明 | 确认要求 |
-|------|------|----------|
-| 批量测试 | 测试选中模型的 API 连接 | 显示测试结果 |
-| 批量启用 | 启用选中的模型 | - |
-| 批量禁用 | 禁用选中的模型 | - |
-| 批量删除 | 删除选中的模型配置 | 二次确认 |
-| 批量导出 | 导出模型配置 | 选择格式 |
-
-#### 2.2.5 定时任务批量操作
-
-| 操作 | 说明 | 确认要求 |
-|------|------|----------|
-| 批量启用 | 启用选中的任务 | - |
-| 批量禁用 | 禁用选中的任务 | - |
-| 批量执行 | 立即执行选中的任务 | 显示执行进度 |
-| 批量删除 | 删除选中的任务 | 二次确认 |
-| 批量导出 | 导出任务配置 | 选择格式 |
-
-### 2.3 批量操作 UI 组件
-
-#### 2.3.1 批量操作工具栏
-
-```
-┌─────────────────────────────────────────────────────┐
-│ 已选择 3 项                                           │
-│                                                      │
-│  [批量删除] [批量导出] [批量启用] [批量禁用] [+更多] │
-│                                                      │
-│  最近操作：                                         │
-│  • 批量删除 5 项会话 - 2 分钟前 ✓                     │
-│  • 批量启用 10 项技能 - 1 小时前 ✓                    │
-└─────────────────────────────────────────────────────┘
-```
-
-#### 2.3.2 批量操作进度
-
-```
-┌─────────────────────────────────────────────────────┐
-│ 批量删除会话...                                     │
-│                                                      │
-│  ████████████░░░░░░░░░░ 60% (3/5)                   │
-│                                                      │
-│  ✓ 会话 B - 删除成功                                 │
-│  ✓ 会话 C - 删除成功                                 │
-│  ✓ 会话 E - 删除成功                                 │
-│  ○ 会话 F - 处理中...                                │
-│  ○ 会话 G - 等待中                                   │
-│                                                      │
-│  [取消]                                              │
-└─────────────────────────────────────────────────────┘
-```
-
-#### 2.3.3 批量操作结果
-
-```
-┌─────────────────────────────────────────────────────┐
-│ 批量删除完成                                        │
-│                                                      │
-│  成功：5 项                                          │
-│  失败：0 项                                          │
-│                                                      │
-│  ✓ 会话 B                                            │
-│  ✓ 会话 C                                            │
-│  ✓ 会话 E                                            │
-│  ✓ 会话 F                                            │
-│  ✓ 会话 G                                            │
-│                                                      │
-│  [关闭] [查看日志]                                   │
-└─────────────────────────────────────────────────────┘
-```
+#### 2.4.3 按钮状态
+- **批量删除**: 始终可用
+- **批量启用**: 仅当选中项中有禁用状态任务时可用
+- **批量禁用**: 仅当选中项中有启用状态任务时可用
+- **取消选择**: 始终可用
 
 ---
 
-## 三、验收标准
+## 三、非功能需求
 
-### 3.1 功能验收
+### 3.1 性能要求
+- 批量操作响应时间：< 2 秒（100 条以内）
+- 支持单次最多操作 100 条记录
+- 超过 100 条时提示分批操作
 
-- [ ] 所有列表页面支持复选框选择
-- [ ] 支持全选、反选、清空操作
-- [ ] 支持跨页选择（全部数据）
-- [ ] 批量删除功能正常工作
-- [ ] 批量启用/禁用功能正常工作
-- [ ] 批量导出功能支持 JSON/CSV 格式
-- [ ] 批量操作显示实时进度
-- [ ] 批量操作错误时能部分成功
-- [ ] 批量操作结果有明确反馈
+### 3.2 用户体验
+- 选中状态实时反馈
+- 操作进度可视化
+- 操作结果明确提示
+- 支持键盘操作（Ctrl/Cmd + 点击多选，Shift + 点击范围选择）
 
-### 3.2 性能验收
+### 3.3 安全性
+- 批量删除需要二次确认
+- 操作前校验权限
+- 记录批量操作日志（审计）
 
-- [ ] 批量操作 100 项数据在 10 秒内完成
-- [ ] 批量操作不阻塞 UI 界面
-- [ ] 支持后台执行，用户可继续其他操作
-- [ ] 大批量操作（500+ 项）使用分页处理
-
-### 3.3 安全验收
-
-- [ ] 批量删除需要二次确认
-- [ ] 批量操作记录审计日志
-- [ ] 权限检查：用户只能操作有权限的数据
-- [ ] 批量操作失败时回滚已执行的操作（可选）
+### 3.4 兼容性
+- 支持主流浏览器（Chrome, Firefox, Safari, Edge）
+- 响应式设计，支持平板设备
 
 ---
 
-## 四、技术要点
+## 四、技术实现方案
 
 ### 4.1 前端实现
 
-#### 4.1.1 选择状态管理
-
-```typescript
-// 使用 Zustand 管理选择状态
-import { create } from 'zustand';
-
-interface BatchSelectionStore {
-  selectedIds: Set<string>;
-  totalCount: number;
-  currentPageOnly: boolean;
-  
-  selectAll: (all: boolean) => void;
-  selectOne: (id: string) => void;
-  deselectOne: (id: string) => void;
-  invertSelection: () => void;
-  clearSelection: () => void;
-  selectAllData: () => void;
-}
-
-export const useBatchSelection = create<BatchSelectionStore>((set, get) => ({
-  selectedIds: new Set(),
-  totalCount: 0,
-  currentPageOnly: true,
-  
-  selectAll: (all) => set({ 
-    selectedIds: all ? new Set(currentPageIds) : new Set() 
-  }),
-  
-  selectOne: (id) => set((state) => {
-    const newSet = new Set(state.selectedIds);
-    newSet.add(id);
-    return { selectedIds: newSet };
-  }),
-  
-  // ... 其他方法
-}));
+#### 4.1.1 组件结构
+```
+src/components/cron/
+├── CronEditor.vue          # 现有编辑器组件
+├── CronBatchToolbar.vue    # 批量操作工具栏（新增）
+└── CronBatchConfirm.vue    # 批量操作确认对话框（新增）
 ```
 
-#### 4.1.2 批量操作组件
-
+#### 4.1.2 状态管理
 ```typescript
-// BatchActionBar 组件
-interface BatchActionBarProps {
-  selectedCount: number;
-  totalCount: number;
-  onAction: (action: string, ids: string[]) => Promise<BatchResult>;
+// stores/cron.ts 扩展
+interface CronStore {
+  // 新增：选中状态
+  selectedIds: Set<string>
+  
+  // 新增：批量操作方法
+  selectAll(): void
+  deselectAll(): void
+  toggleSelect(id: string): void
+  selectRange(startId: string, endId: string): void
+  getSelectedCount(): number
+  clearSelection(): void
+  
+  // 新增：批量操作
+  batchDelete(ids: string[]): Promise<BatchResult>
+  batchEnable(ids: string[]): Promise<BatchResult>
+  batchDisable(ids: string[]): Promise<BatchResult>
+}
+```
+
+#### 4.1.3 API 接口
+```typescript
+// src/api/cron-api.ts 扩展
+const cronApi = {
+  // 批量删除
+  batchDelete: async (ids: string[]): Promise<BatchResult> => {
+    return axios.post('/api/cron/batch-delete', { ids })
+  },
+  
+  // 批量启用
+  batchEnable: async (ids: string[]): Promise<BatchResult> => {
+    return axios.post('/api/cron/batch-enable', { ids })
+  },
+  
+  // 批量禁用
+  batchDisable: async (ids: string[]): Promise<BatchResult> => {
+    return axios.post('/api/cron/batch-disable', { ids })
+  }
 }
 
-const BatchActionBar: React.FC<BatchActionBarProps> = ({
-  selectedCount,
-  totalCount,
-  onAction
-}) => {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  
-  const handleBatchAction = async (action: string) => {
-    setIsProcessing(true);
-    try {
-      const result = await onAction(action, Array.from(selectedIds));
-      // 显示结果
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-  
-  return (
-    <div className="batch-action-bar">
-      <span>已选择 {selectedCount} 项</span>
-      <Button onClick={() => handleBatchAction('delete')}>批量删除</Button>
-      <Button onClick={() => handleBatchAction('export')}>批量导出</Button>
-      {/* 更多操作 */}
-    </div>
-  );
-};
+interface BatchResult {
+  success: number
+  failed: number
+  errors: Array<{ id: string; message: string }>
+}
 ```
 
 ### 4.2 后端实现
 
-#### 4.2.1 批量操作 API
-
-```typescript
-// POST /api/sessions/batch-delete
-app.post('/api/sessions/batch-delete', authMiddleware, async (req, res) => {
-  const { ids, confirm } = req.body;
-  
-  if (!confirm) {
-    return res.status(400).json({ error: '需要二次确认' });
-  }
-  
-  // 权限检查
-  const accessibleIds = await filterAccessibleIds(ids, req.user);
-  
-  // 批量删除
-  const result = await sessionService.batchDelete(accessibleIds);
-  
-  // 记录审计日志
-  await auditLogService.log({
-    action: 'BATCH_DELETE_SESSIONS',
-    userId: req.user.id,
-    count: result.successCount,
-    details: result
-  });
-  
-  res.json(result);
-});
-
-// POST /api/sessions/batch-export
-app.post('/api/sessions/batch-export', authMiddleware, async (req, res) => {
-  const { ids, format = 'json' } = req.body;
-  
-  const sessions = await sessionService.batchGet(ids);
-  const content = format === 'csv' 
-    ? convertToCSV(sessions)
-    : JSON.stringify(sessions, null, 2);
-  
-  res.setHeader('Content-Type', format === 'csv' ? 'text/csv' : 'application/json');
-  res.send(content);
-});
+#### 4.2.1 路由设计
+```javascript
+// backend/src/routes/cron.routes.js 扩展
+router.post('/batch-delete', authMiddleware, batchDeleteController)
+router.post('/batch-enable', authMiddleware, batchEnableController)
+router.post('/batch-disable', authMiddleware, batchDisableController)
 ```
 
-#### 4.2.2 批量操作服务
-
-```typescript
-// services/batchService.ts
-class BatchService {
-  async batchProcess<T>(
-    items: T[],
-    processor: (item: T) => Promise<ProcessResult>,
-    options: { concurrency?: number; onProgress?: (progress: Progress) => void } = {}
-  ): Promise<BatchResult> {
-    const { concurrency = 5, onProgress } = options;
-    const results: ProcessResult[] = [];
-    const success: ProcessResult[] = [];
-    const failed: ProcessResult[] = [];
-    
-    // 分批处理
-    const batches = chunk(items, concurrency);
-    
-    for (let i = 0; i < batches.length; i++) {
-      const batchResults = await Promise.all(
-        batches[i].map(item => processor(item).catch(err => ({ error: err })))
-      );
-      
-      results.push(...batchResults);
-      success.push(...batchResults.filter(r => r.success));
-      failed.push(...batchResults.filter(r => !r.success));
-      
-      onProgress?.({
-        processed: results.length,
-        total: items.length,
-        success: success.length,
-        failed: failed.length
-      });
-    }
-    
-    return { success, failed, total: items.length };
+#### 4.2.2 控制器实现
+```javascript
+// backend/src/controllers/cron.controller.js 扩展
+const batchDeleteController = async (req, res) => {
+  const { ids } = req.body
+  const userId = req.user.id
+  
+  // 参数校验
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: 'Invalid ids parameter' })
   }
+  
+  // 限制单次操作数量
+  if (ids.length > 100) {
+    return res.status(400).json({ error: 'Maximum 100 items per batch' })
+  }
+  
+  // 权限校验：只能删除自己的任务
+  const userTasks = await CronJob.findAll({
+    where: { userId, id: ids }
+  })
+  
+  // 批量删除
+  const result = await CronJob.destroy({
+    where: { id: ids, userId }
+  })
+  
+  // 记录审计日志
+  await AuditLog.create({
+    userId,
+    action: 'batch_delete',
+    resourceId: ids,
+    result: 'success'
+  })
+  
+  res.json({ success: result, failed: 0, errors: [] })
+}
+```
+
+### 4.3 数据库变更
+无需新增表，现有 `cron_jobs` 表已满足需求。
+
+---
+
+## 五、任务拆解
+
+### 5.1 前端任务
+
+| 任务 ID | 任务名称 | 描述 | 预估工时 | 优先级 |
+|--------|----------|------|----------|--------|
+| FE-001 | 复选框组件集成 | 在 Cron 列表中添加复选框 | 2h | P0 |
+| FE-002 | 全选/反选功能 | 实现全选、反选、取消选择 | 2h | P0 |
+| FE-003 | 批量操作工具栏 | 创建批量操作工具栏组件 | 3h | P0 |
+| FE-004 | 批量操作确认对话框 | 创建确认对话框组件 | 2h | P0 |
+| FE-005 | 批量删除实现 | 集成批量删除 API | 2h | P0 |
+| FE-006 | 批量状态变更实现 | 集成批量启用/禁用 API | 2h | P0 |
+| FE-007 | 选中状态管理 | 实现 Store 中的选中状态管理 | 3h | P0 |
+| FE-008 | 键盘操作支持 | 支持 Ctrl/Cmd+ 点击、Shift+ 范围选择 | 2h | P1 |
+| FE-009 | 响应式适配 | 适配移动端和平板 | 2h | P1 |
+
+**前端总计**: 20 小时
+
+### 5.2 后端任务
+
+| 任务 ID | 任务名称 | 描述 | 预估工时 | 优先级 |
+|--------|----------|------|----------|--------|
+| BE-001 | 批量删除 API | 实现批量删除接口 | 2h | P0 |
+| BE-002 | 批量启用 API | 实现批量启用接口 | 1h | P0 |
+| BE-003 | 批量禁用 API | 实现批量禁用接口 | 1h | P0 |
+| BE-004 | 权限校验增强 | 确保只能操作自己的任务 | 1h | P0 |
+| BE-005 | 审计日志记录 | 记录批量操作日志 | 1h | P1 |
+| BE-006 | API 单元测试 | 编写批量操作 API 测试 | 2h | P1 |
+
+**后端总计**: 8 小时
+
+### 5.3 测试任务
+
+| 任务 ID | 任务名称 | 描述 | 预估工时 | 优先级 |
+|--------|----------|------|----------|--------|
+| QA-001 | 前端功能测试 | 测试所有批量操作功能 | 3h | P0 |
+| QA-002 | 后端 API 测试 | 测试 API 接口和权限 | 2h | P0 |
+| QA-003 | 集成测试 | 前后端联调测试 | 2h | P0 |
+| QA-004 | 边界测试 | 测试最大值、空值等边界情况 | 2h | P1 |
+
+**测试总计**: 9 小时
+
+---
+
+## 六、验收标准
+
+### 6.1 功能验收
+- [ ] 能够选中/取消选中单个任务
+- [ ] 全选功能正常工作
+- [ ] 反选功能正常工作
+- [ ] 批量删除功能正常，有确认对话框
+- [ ] 批量启用功能正常
+- [ ] 批量禁用功能正常
+- [ ] 操作结果有明确提示
+- [ ] 超过 100 条时正确提示
+
+### 6.2 性能验收
+- [ ] 100 条数据批量操作响应时间 < 2 秒
+- [ ] 选中状态切换无卡顿
+- [ ] 工具栏显示/隐藏流畅
+
+### 6.3 安全验收
+- [ ] 只能删除/操作自己的任务
+- [ ] 批量删除需要二次确认
+- [ ] 操作日志正确记录
+
+---
+
+## 七、开发计划
+
+### 7.1 第一阶段（Day 1）
+- 前端：FE-001, FE-002, FE-003, FE-007
+- 后端：BE-001, BE-002, BE-003, BE-004
+
+### 7.2 第二阶段（Day 2）
+- 前端：FE-004, FE-005, FE-006
+- 后端：BE-005
+- 测试：QA-001, QA-002
+
+### 7.3 第三阶段（Day 3）
+- 前后端联调
+- 测试：QA-003, QA-004
+- 修复问题
+- 代码审查
+
+---
+
+## 八、风险评估
+
+| 风险项 | 影响 | 概率 | 应对措施 |
+|--------|------|------|----------|
+| 大量数据选中导致性能问题 | 中 | 中 | 限制单次操作数量，分页处理 |
+| 批量操作失败部分数据 | 中 | 低 | 返回详细错误信息，支持重试 |
+| 权限校验遗漏 | 高 | 低 | 代码审查，安全测试 |
+
+---
+
+## 九、附录
+
+### 9.1 相关文档
+- [Cron 可视化编辑器需求](./004-cron-visual-editor.md)
+- [系统架构设计](../../ARCHITECTURE_DESIGN.md)
+- [前端技术规范](../../FRONTEND_TECH_STACK.md)
+
+### 9.2 接口定义
+```typescript
+// 批量操作请求
+interface BatchOperationRequest {
+  ids: string[]  // 任务 ID 列表
+}
+
+// 批量操作响应
+interface BatchOperationResponse {
+  success: number   // 成功数量
+  failed: number    // 失败数量
+  errors: Array<{   // 错误详情
+    id: string
+    message: string
+  }>
 }
 ```
 
 ---
 
-## 五、测试计划
+**文档审批**:
+- [ ] 产品经理评审
+- [ ] 技术负责人评审
+- [ ] 测试负责人评审
 
-### 5.1 单元测试
-
-- 选择状态管理逻辑
-- 批量操作服务
-- 分页处理逻辑
-
-### 5.2 集成测试
-
-- 完整批量操作流程
-- 大批量数据处理
-- 错误处理场景
-
-### 5.3 性能测试
-
-- 批量操作 100/500/1000 项数据
-- 并发处理性能
-
----
-
-## 六、交付物
-
-- [ ] 批量选择组件（复选框、全选、反选）
-- [ ] 批量操作工具栏组件
-- [ ] 批量操作进度组件
-- [ ] 批量操作结果组件
-- [ ] 后端批量操作 API
-- [ ] 批量处理服务
-- [ ] 单元测试
-- [ ] 集成测试
-
----
-
-## 七、时间估算
-
-| 任务 | 预计时间 |
-|------|----------|
-| 技术方案设计 | 2 小时 |
-| 选择状态管理 | 3 小时 |
-| 批量操作组件开发 | 8 小时 |
-| 后端批量 API 开发 | 6 小时 |
-| 批量处理服务 | 4 小时 |
-| 会话管理批量操作 | 3 小时 |
-| 技能管理批量操作 | 3 小时 |
-| 渠道管理批量操作 | 3 小时 |
-| 模型管理批量操作 | 3 小时 |
-| 定时任务批量操作 | 3 小时 |
-| 单元测试 | 6 小时 |
-| 集成测试 | 4 小时 |
-| **总计** | **48 小时** |
-
----
-
-## 八、风险与缓解
-
-| 风险 | 影响 | 缓解措施 |
-|------|------|----------|
-| 大批量操作超时 | 请求失败 | 使用分批处理 + 后台任务 |
-| 数据库锁竞争 | 性能下降 | 使用事务隔离 + 延迟提交 |
-| 部分失败处理复杂 | 数据不一致 | 记录详细日志，支持重试 |
-
----
-
-**文档版本**: 1.0  
-**最后更新**: 2026-04-10  
-**审批状态**: 待审批
+**变更历史**:
+| 版本 | 日期 | 作者 | 变更内容 |
+|------|------|------|----------|
+| v1.0 | 2026-04-12 | 产品经理 | 初始版本 |

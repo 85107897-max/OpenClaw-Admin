@@ -91,7 +91,7 @@ const hasDist = existsSync(join(distPath, 'index.html'))
 const sessions = new Map()
 
 // Security: CORS configuration with allowed origins
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:10001').split(',')
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:4173,http://localhost:10001,http://pull.7ii.win:4173').split(',')
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -357,7 +357,15 @@ function authMiddleware(req, res, next) {
 
 app.get('/api/auth/config', (req, res) => {
   res.json({
+    ok: true,
     enabled: isAuthEnabled(),
+    config: {
+      AUTH_USERNAME: process.env.AUTH_USERNAME || '',
+      AUTH_PASSWORD: process.env.AUTH_PASSWORD ? '****' : '', // 不返回明文密码
+      OPENCLAW_WS_URL: process.env.OPENCLAW_WS_URL || 'ws://localhost:18789',
+      OPENCLAW_AUTH_TOKEN: process.env.OPENCLAW_AUTH_TOKEN || '',
+      OPENCLAW_AUTH_PASSWORD: process.env.OPENCLAW_AUTH_PASSWORD || '',
+    }
   })
 })
 

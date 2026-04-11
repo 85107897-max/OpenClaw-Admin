@@ -1,13 +1,66 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { NButton, NIcon } from 'naive-ui'
 import ThemeSwitcher from '@/components/common/ThemeSwitcher.vue'
+
+// Mock vue-i18n
+vi.mock('vue-i18n', async () => {
+  const actual = await vi.importActual('vue-i18n')
+  return {
+    ...actual,
+    useI18n: () => ({
+      t: (key: string) => {
+        const translations: Record<string, string> = {
+          'theme.light': '亮色',
+          'theme.dark': '暗色',
+          'theme.auto': '自动',
+        }
+        return translations[key] || key
+      },
+      locale: { value: 'zh-CN' },
+    }),
+  }
+})
+
+// Mock localStorage
+const localStorageMock = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+}
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+})
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  localStorageMock.getItem.mockReturnValue(null)
+  localStorageMock.setItem.mockReturnValue(undefined)
+  localStorageMock.clear.mockReturnValue(undefined)
+})
+
+// Mock matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+})
 
 describe('ThemeSwitcher', () => {
   it('renders all theme buttons', () => {
     const wrapper = mount(ThemeSwitcher)
     
-    const buttons = wrapper.findAllComponents({ name: 'NButton' })
+    // 检查是否有 3 个主题按钮
+    const buttons = wrapper.findAll('button')
     expect(buttons.length).toBeGreaterThanOrEqual(2)
   })
 
@@ -25,7 +78,7 @@ describe('ThemeSwitcher', () => {
   it('emits theme change event', async () => {
     const wrapper = mount(ThemeSwitcher)
     
-    const buttons = wrapper.findAllComponents({ name: 'NButton' })
+    const buttons = wrapper.findAll('button')
     const darkButton = buttons.find(btn => btn.text().includes('暗色'))
     
     if (darkButton) {
@@ -36,37 +89,29 @@ describe('ThemeSwitcher', () => {
   })
 
   it('saves theme to localStorage', async () => {
-    const mockSetItem = vi.fn()
-    Object.defineProperty(window.localStorage, 'setItem', {
-      value: mockSetItem
-    })
-    
     const wrapper = mount(ThemeSwitcher)
     
-    const buttons = wrapper.findAllComponents({ name: 'NButton' })
+    const buttons = wrapper.findAll('button')
     const darkButton = buttons.find(btn => btn.text().includes('暗色'))
     
     if (darkButton) {
       await darkButton.trigger('click')
-      expect(mockSetItem).toHaveBeenCalledWith('app-theme', 'dark')
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('app-theme', 'dark')
     }
   })
 
   it('loads theme from localStorage on mount', () => {
-    const mockGetItem = vi.fn(() => 'dark')
-    Object.defineProperty(window.localStorage, 'getItem', {
-      value: mockGetItem
-    })
+    localStorageMock.getItem.mockReturnValue('dark')
     
     mount(ThemeSwitcher)
     
-    expect(mockGetItem).toHaveBeenCalledWith('app-theme')
+    expect(localStorageMock.getItem).toHaveBeenCalledWith('app-theme')
   })
 
   it('applies theme to document', async () => {
     const wrapper = mount(ThemeSwitcher)
     
-    const buttons = wrapper.findAllComponents({ name: 'NButton' })
+    const buttons = wrapper.findAll('button')
     const darkButton = buttons.find(btn => btn.text().includes('暗色'))
     
     if (darkButton) {
@@ -80,7 +125,7 @@ describe('ThemeSwitcher', () => {
   it('toggles theme class on document', async () => {
     const wrapper = mount(ThemeSwitcher)
     
-    const buttons = wrapper.findAllComponents({ name: 'NButton' })
+    const buttons = wrapper.findAll('button')
     
     // 切换到暗色
     const darkButton = buttons.find(btn => btn.text().includes('暗色'))

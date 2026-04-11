@@ -1,6 +1,7 @@
 /**
  * 数据导出服务
  * 负责数据备份、导出功能
+ * 支持 Excel/CSV/PDF 格式
  */
 
 const db = require('../models/database');
@@ -8,6 +9,9 @@ const fs = require('fs');
 const path = require('path');
 const AdmZip = require('adm-zip');
 const crypto = require('crypto');
+const XLSX = require('xlsx');
+const { stringify } = require('csv-stringify');
+const PDFDocument = require('pdfkit');
 
 class ExportService {
   constructor() {
@@ -117,7 +121,7 @@ class ExportService {
   }
 
   /**
-   * 导出指定资源类型
+   * 导出指定资源类型（支持 Excel/CSV/PDF）
    * @param {string} resourceType - 资源类型
    * @param {object} options - 选项
    * @returns {object} - 导出信息
@@ -127,7 +131,8 @@ class ExportService {
     
     const exportId = crypto.randomUUID();
     const timestamp = Date.now();
-    const fileName = `${resourceType}_${timestamp}_${exportId.substring(0, 8)}.${format}`;
+    const fileExt = format === 'excel' ? '.xlsx' : format === 'pdf' ? '.pdf' : '.' + format;
+    const fileName = `${resourceType}_${timestamp}_${exportId.substring(0, 8)}${fileExt}`;
     const filePath = path.join(this.exportDir, fileName);
 
     try {
@@ -143,7 +148,7 @@ class ExportService {
       }
 
       // 过滤字段
-      if (fields.length > 0 && format === 'json') {
+      if (fields.length > 0) {
         filteredData = filteredData.map(item => {
           const filtered = {};
           fields.forEach(field => {
@@ -155,24 +160,30 @@ class ExportService {
         });
       }
 
-      // 写入文件
-      let content;
+      // 根据格式写入文件
+      let fileSize = 0;
       if (format === 'json') {
-        content = JSON.stringify(filteredData, null, 2);
+        const content = JSON.stringify(filteredData, null, 2);
+        fs.writeFileSync(filePath, content);
+        fileSize = Buffer.byteLength(content);
       } else if (format === 'csv') {
-        content = this.jsonToCsv(filteredData);
+        await this.writeCsvFile(filePath, filteredData);
+        fileSize = fs.statSync(filePath).size;
+      } else if (format === 'excel' || format === 'xlsx') {
+        await this.writeExcelFile(filePath, filteredData);
+        fileSize = fs.statSync(filePath).size;
+      } else if (format === 'pdf') {
+        await this.writePdfFile(filePath, filteredData, resourceType);
+        fileSize = fs.statSync(filePath).size;
       } else {
         throw new Error(`Unsupported format: ${format}`);
       }
 
-      fs.writeFileSync(filePath, content);
-
       // 记录导出历史
-      const fileInfo = fs.statSync(filePath);
       await this.recordExportHistory({
         export_type: `resource_${resourceType}`,
         file_name: fileName,
-        file_size: fileInfo.size,
+        file_size: fileSize,
         record_count: filteredData.length,
         status: 'completed',
         created_by: null
@@ -182,7 +193,7 @@ class ExportService {
         success: true,
         export_id: exportId,
         file_name: fileName,
-        file_size: fileInfo.size,
+        file_size: fileSize,
         download_path: filePath,
         record_count: filteredData.length
       };
@@ -190,6 +201,103 @@ class ExportService {
       console.error('Export failed:', e);
       throw e;
     }
+  }
+
+  /**
+   * 写入 CSV 文件
+   * @param {string} filePath - 文件路径
+   * @param {Array} data - 数据
+   */
+  writeCsvFile(filePath, data) {
+    return new Promise((resolve, reject) => {
+      if (data.length === 0) {
+        fs.writeFileSync(filePath, '');
+        return resolve();
+      }
+
+      stringify(data, { header: true, columns: Object.keys(data[0]) }, (err, output) => {
+        if (err) return reject(err);
+        fs.writeFileSync(filePath, output);
+        resolve();
+      });
+    });
+  }
+
+  /**
+   * 写入 Excel 文件
+   * @param {string} filePath - 文件路径
+   * @param {Array} data - 数据
+   */
+  writeExcelFile(filePath, data) {
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Data');
+    XLSX.writeFile(wb, filePath);
+    return Promise.resolve();
+  }
+
+  /**
+   * 写入 PDF 文件
+   * @param {string} filePath - 文件路径
+   * @param {Array} data - 数据
+   * @param {string} title - 标题
+   */
+  writePdfFile(filePath, data, title) {
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument();
+      const stream = fs.createWriteStream(filePath);
+      
+      doc.pipe(stream);
+      
+      // 添加标题
+      doc.fontSize(20).text(`${title} Export`, { align: 'center' });
+      doc.moveDown();
+      
+      // 添加数据表格
+      if (data.length === 0) {
+        doc.fontSize(12).text('No data to export');
+      } else {
+        const headers = Object.keys(data[0]);
+        doc.fontSize(10);
+        
+        // 表头
+        let x = 50;
+        let y = doc.y;
+        headers.forEach((header, i) => {
+          doc.text(header, x, y, { width: 100, align: 'center' });
+          x += 100;
+        });
+        doc.moveDown(0.5);
+        
+        // 数据行
+        data.slice(0, 100).forEach(row => {
+          x = 50;
+          y = doc.y;
+          headers.forEach(header => {
+            const value = row[header] || '';
+            doc.text(String(value).substring(0, 50), x, y, { width: 100 });
+            x += 100;
+          });
+          doc.moveDown(0.5);
+          
+          // 每 30 行分页
+          if ((data.indexOf(row) + 1) % 30 === 0 && data.indexOf(row) + 1 < data.length) {
+            doc.addPage();
+            x = 50;
+          }
+        });
+        
+        if (data.length > 100) {
+          doc.moveDown();
+          doc.fontSize(10).text(`... and ${data.length - 100} more rows (truncated for PDF)`);
+        }
+      }
+      
+      doc.end();
+      
+      stream.on('finish', resolve);
+      stream.on('error', reject);
+    });
   }
 
   /**

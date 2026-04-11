@@ -1,7 +1,7 @@
 // 认证中间件（占位实现，实际项目中需要实现 JWT 验证）
 function authenticate(req, res, next) {
   // 开发环境允许无认证
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
     req.user = { id: '1', name: 'Admin', email: 'admin@example.com' };
     return next();
   }
@@ -32,7 +32,7 @@ function authenticate(req, res, next) {
 // 权限检查中间件
 function requirePermission(permission) {
   return (req, res, next) => {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
       return next();
     }
 

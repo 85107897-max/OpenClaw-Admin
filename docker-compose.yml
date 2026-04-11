@@ -19,8 +19,7 @@ services:
       - ./data:/app/data
       - ./backups:/app/backups
       - ./config:/app/config
-    depends_on:
-      - openclaw
+    # depends_on:  # 注释掉依赖，因为 openclaw 是可选服务
     networks:
       - app-network
     restart: unless-stopped

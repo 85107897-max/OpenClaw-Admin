@@ -1,4 +1,5 @@
 const winston = require('winston');
+const { auditLogMiddleware } = require('./auditLogger');
 
 // 请求日志中间件
 function requestLogger(logger) {
@@ -21,4 +22,12 @@ function requestLogger(logger) {
   };
 }
 
-module.exports = requestLogger;
+// 审计日志中间件包装器
+function auditLogger() {
+  return auditLogMiddleware();
+}
+
+module.exports = {
+  requestLogger,
+  auditLogger
+};

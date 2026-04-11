@@ -39,14 +39,16 @@ export class OpenClawGateway extends EventEmitter {
     }
 
     const authParam = this.authToken || this.authPassword || ''
-    const wsUrl = authParam ? `${this.url}?auth=${authParam}` : this.url
+    // 修复：确保 auth 参数正确附加到 URL
+    const wsUrl = authParam ? `${this.url}?auth=${encodeURIComponent(authParam)}` : this.url
     
     this.debug('Connecting to:', this.url)
     this.debug('Auth configured:', {
       hasToken: !!this.authToken,
       hasPassword: !!this.authPassword,
       tokenLength: this.authToken?.length || 0,
-      passwordLength: this.authPassword?.length || 0
+      passwordLength: this.authPassword?.length || 0,
+      wsUrl: wsUrl.substring(0, 100) + '...'
     })
     
     try {

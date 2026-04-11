@@ -7,12 +7,19 @@ export default defineConfig({
   test: {
     environment: 'happy-dom',
     globals: true,
+    setupFiles: ['./tests/setup/vitest-setup.ts'],
+    server: {
+      deps: {
+        inline: ['vue-i18n']
+      }
+    },
     include: [
       'tests/unit/**/*.test.ts',
       'tests/integration/**/*.test.ts',
       'tests/e2e/**/*.test.ts',
       'tests/security/**/*.test.ts',
       'tests/performance/**/*.test.ts',
+      'tests/batch/**/*.test.js',
       'frontend/tests/**/*.test.ts',
     ],
     coverage: {

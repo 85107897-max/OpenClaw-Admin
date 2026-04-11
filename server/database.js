@@ -139,6 +139,113 @@ console.log('[Database] Initialized at:', dbPath)
 
 export default db
 
+// Audit Log functions
+export function createAuditLog(params) {
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO audit_logs (user_id, username, action, resource, resource_id, details, ip_address, user_agent, status, error_message, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    `)
+    stmt.run(
+      params.userId || null,
+      params.username || null,
+      params.action || null,
+      params.resource || null,
+      params.resourceId || null,
+      params.details ? JSON.stringify(params.details) : null,
+      params.ipAddress || null,
+      params.userAgent || null,
+      params.status || 'success',
+      params.errorMessage || null
+    )
+    return Promise.resolve({ ok: true })
+  } catch (error) {
+    console.error('Error creating audit log:', error)
+    return Promise.resolve({ ok: false, error: error.message })
+  }
+}
+
+export function getAuditLogs(params = {}) {
+  try {
+    const { page = 1, pageSize = 20, userId, action, resource, status, startTime, endTime } = params
+    const conditions = []
+    const values = []
+    
+    if (userId) { conditions.push('user_id = ?'); values.push(userId) }
+    if (action) { conditions.push('action = ?'); values.push(action) }
+    if (resource) { conditions.push('resource = ?'); values.push(resource) }
+    if (status) { conditions.push('status = ?'); values.push(status) }
+    if (startTime) { conditions.push('created_at >= ?'); values.push(startTime) }
+    if (endTime) { conditions.push('created_at <= ?'); values.push(endTime) }
+    
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+    const offset = (page - 1) * pageSize
+    
+    const countStmt = db.prepare(`SELECT COUNT(*) as total FROM audit_logs ${whereClause}`)
+    const total = countStmt.get(...values).total
+    
+    const rows = db.prepare(`
+      SELECT * FROM audit_logs ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `).all(...values, pageSize, offset)
+    
+    return Promise.resolve({
+      ok: true,
+      data: rows,
+      total,
+      page,
+      pageSize
+    })
+  } catch (error) {
+    console.error('Error getting audit logs:', error)
+    return Promise.resolve({ ok: false, error: error.message, data: [], total: 0 })
+  }
+}
+
+export function getAuditLogById(id) {
+  try {
+    const row = db.prepare('SELECT * FROM audit_logs WHERE id = ?').get(id)
+    return Promise.resolve(row || null)
+  } catch (error) {
+    console.error('Error getting audit log by id:', error)
+    return Promise.resolve(null)
+  }
+}
+
+export function getAuditLogStatistics(params = {}) {
+  try {
+    const { startTime, endTime } = params
+    const conditions = []
+    const values = []
+    
+    if (startTime) { conditions.push('created_at >= ?'); values.push(startTime) }
+    if (endTime) { conditions.push('created_at <= ?'); values.push(endTime) }
+    
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+    
+    const totalStmt = db.prepare(`SELECT COUNT(*) as total FROM audit_logs ${whereClause}`)
+    const total = totalStmt.get(...values).total
+    
+    const successStmt = db.prepare(`SELECT COUNT(*) as count FROM audit_logs ${whereClause} AND status = 'success'`)
+    const success = successStmt.get(...values).count
+    
+    const failureStmt = db.prepare(`SELECT COUNT(*) as count FROM audit_logs ${whereClause} AND status = 'failure'`)
+    const failure = failureStmt.get(...values).count
+    
+    return Promise.resolve({
+      ok: true,
+      total,
+      success,
+      failure,
+      successRate: total > 0 ? (success / total * 100).toFixed(2) : 0
+    })
+  } catch (error) {
+    console.error('Error getting audit log statistics:', error)
+    return Promise.resolve({ ok: false, error: error.message, total: 0, success: 0, failure: 0 })
+  }
+}
+
 // ============================================================
 // P0: Multi-User Auth + RBAC + Audit Log
 // ============================================================
