@@ -16,6 +16,7 @@ const themesRoutes = require('./routes/themes.routes');
 const authRoutes = require('./routes/auth.routes');
 const wafRoutes = require('./routes/waf.routes');
 const cicdScanRoutes = require('./routes/cicdScan.routes');
+const configRoutes = require('./routes/config.routes');
 const cronRoutes = require('./routes/cron.routes');
 const cronExtendedRoutes = require('./routes/cronExtended.routes');
 const auditRoutes = require('./routes/audit.routes');
@@ -66,6 +67,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/waf', wafRoutes);
 app.use('/api/cicd', cicdScanRoutes);
+app.use('/api/config', configRoutes);
 app.use('/api/batch', batchRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/stats', statsRoutes);
