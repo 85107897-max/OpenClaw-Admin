@@ -54,8 +54,13 @@
             </div>
           </div>
 
-          <NAlert type="info" :title="t('cron.editor.preview')">
-            {{ cronPreview }}
+          <!-- 执行预览 -->
+          <NAlert type="info" :title="t('cron.editor.nextRuns')">
+            <div class="cron-preview-list">
+              <div v-for="(run, idx) in nextRunPreviews" :key="idx" class="cron-preview-item">
+                <NText depth="3">{{ idx + 1 }}. {{ run }}</NText>
+              </div>
+            </div>
           </NAlert>
         </template>
 
@@ -116,7 +121,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import {
   NCard,
   NButton,
@@ -136,6 +141,9 @@ import {
   NGridItem,
 } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
+import { CronExpressionParser } from 'cron-parser'
+
+const cronParser = CronExpressionParser
 
 interface CronPreset {
   id: string
@@ -238,9 +246,37 @@ const everyUnitOptions = [
 
 const cronPreview = computed(() => {
   const expr = scheduleForm.value.cronExpression
-  // 简单的预览逻辑
-  return `${t('cron.editor.nextRun')}: ${parseCronPreview(expr)}`
+  return `${t('cron.editor.lastRunPreview')}: ${parseCronPreview(expr)}`
 })
+
+const nextRunPreviews = computed(() => {
+  const expr = scheduleForm.value.cronExpression
+  return getNextRunTimes(expr, 5)
+})
+
+function getNextRunTimes(expr: string, count: number = 5): string[] {
+  try {
+    const parts = expr.split(' ')
+    if (parts.length !== 5) return [t('cron.editor.invalidCron')]
+    
+    // 使用 cron-parser 库解析
+    const interval = CronExpressionParser.parse(expr)
+    
+    const runs: string[] = []
+    for (let i = 0; i < count; i++) {
+      try {
+        const next = interval.next()
+        runs.push(next.toDate().toLocaleString('zh-CN'))
+      } catch {
+        break
+      }
+    }
+    
+    return runs.length > 0 ? runs : [t('cron.editor.noNextRun')]
+  } catch (error) {
+    return [t('cron.editor.invalidCron')]
+  }
+}
 
 function parseCronPreview(expr: string): string {
   // 简化版的 cron 预览
@@ -366,5 +402,20 @@ if (props.initialSchedule) {
 
 .cron-field :deep(.n-text) {
   font-weight: 500;
+}
+
+.cron-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cron-preview-item {
+  padding: 4px 0;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.08);
+}
+
+.cron-preview-item:last-child {
+  border-bottom: none;
 }
 </style>

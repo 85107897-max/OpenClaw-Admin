@@ -32,6 +32,7 @@
     "better-sqlite3": "^12.6.2",
     "check-disk-space": "^3.4.0",
     "cors": "^2.8.6",
+    "cron-parser": "^5.5.0",
     "dompurify": "^3.3.3",
     "dotenv": "^17.3.1",
     "echarts": "^6.0.0",

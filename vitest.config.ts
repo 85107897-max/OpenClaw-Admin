@@ -13,6 +13,7 @@ export default defineConfig({
       'tests/e2e/**/*.test.ts',
       'tests/security/**/*.test.ts',
       'tests/performance/**/*.test.ts',
+      'frontend/tests/**/*.test.ts',
     ],
     coverage: {
       provider: 'v8',
