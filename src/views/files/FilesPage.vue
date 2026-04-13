@@ -912,7 +912,6 @@ function renderMarkdown(content: string): string {
   return renderSimpleMarkdown(content, {
     imageBasePath: selectedFile.value?.path,
     workspace: currentWorkspace.value || undefined,
-    authToken: authStore.token || undefined,
   })
 }
 

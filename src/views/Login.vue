@@ -173,14 +173,15 @@ function handleBlur() {
           <NForm @submit.prevent="handleLogin">
             <div class="form-item">
               <label class="form-label">{{ t('pages.login.username') }}</label>
-              <NInput
-                v-model:value="username"
-                :placeholder="t('pages.login.usernamePlaceholder')"
-                size="large"
-                class="login-input"
-                @focus="handleFocus"
-                @blur="handleBlur"
-                @keydown.enter="handleLogin"
+               <NInput
+                 v-model:value="username"
+                 :placeholder="t('pages.login.usernamePlaceholder')"
+                 :input-props="{ autocomplete: 'username', name: 'username' }"
+                 size="large"
+                 class="login-input"
+                 @focus="handleFocus"
+                 @blur="handleBlur"
+                 @keydown.enter="handleLogin"
               />
             </div>
             
@@ -191,6 +192,7 @@ function handleBlur() {
                   v-model:value="password"
                   :type="showPassword ? 'text' : 'password'"
                   :placeholder="t('pages.login.passwordPlaceholder')"
+                  :input-props="{ autocomplete: 'current-password', name: 'password' }"
                   size="large"
                   class="login-input"
                   @focus="handleFocus"

@@ -7,7 +7,8 @@ type SimpleMarkdownRenderOptions = {
   autoNestList?: boolean
   imageBasePath?: string
   workspace?: string
-  authToken?: string
+  /** Sanitize HTML output to prevent XSS (default: true). Set to false only for trusted content. */
+  sanitize?: boolean
 }
 
 const markdownRenderer = new MarkdownIt({
@@ -190,14 +191,10 @@ markdownRenderer.renderer.rules.image = (tokens, idx, options, env, self) => {
   if (src && !/^https?:\/\//i.test(src) && !/^data:/i.test(src)) {
     const imageBasePath = (env as any)?.imageBasePath as string | undefined
     const workspace = (env as any)?.workspace as string | undefined
-    const authToken = (env as any)?.authToken as string | undefined
     
     if (imageBasePath && workspace) {
       const resolvedPath = resolveImagePath(src, imageBasePath)
-      let apiSrc = `/api/files/get?path=${encodeURIComponent(resolvedPath)}&workspace=${encodeURIComponent(workspace)}&binary=true`
-      if (authToken) {
-        apiSrc += `&token=${encodeURIComponent(authToken)}`
-      }
+      const apiSrc = `/api/files/get?path=${encodeURIComponent(resolvedPath)}&workspace=${encodeURIComponent(workspace)}&binary=true`
       token?.attrSet('src', apiSrc)
     }
   }
@@ -529,9 +526,6 @@ export function renderSimpleMarkdown(markdown: string, options: SimpleMarkdownRe
   }
   if (options.workspace) {
     env.workspace = options.workspace
-  }
-  if (options.authToken) {
-    env.authToken = options.authToken
   }
   
   const processedContent = processLatex(normalized)

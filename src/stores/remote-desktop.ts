@@ -175,12 +175,7 @@ export const useRemoteDesktopStore = defineStore('remoteDesktop', () => {
     }
 
     try {
-      const authStore = useAuthStore()
-      const token = authStore.getToken()
-      let url = `/api/desktop/stream?sessionId=${sessionId}`
-      if (token) {
-        url += `&token=${token}`
-      }
+      const url = `/api/desktop/stream?sessionId=${sessionId}`
 
       eventSource.value = new EventSource(url)
 
