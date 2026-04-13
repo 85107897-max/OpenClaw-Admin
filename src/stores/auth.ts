@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { useRbacStore, type Role, type User as RbacUser } from './rbac'
 
 const AUTH_TOKEN_KEY = 'auth_token'
 
@@ -10,6 +11,31 @@ export const useAuthStore = defineStore('auth', () => {
   const error = ref<string | null>(null)
 
   const isAuthenticated = computed(() => !!token.value)
+  const rbacStore = useRbacStore()
+
+  function normalizeRole(role: unknown): Role | null {
+    if (role === 'admin' || role === 'operator' || role === 'viewer' || role === 'readonly') {
+      return role === 'viewer' ? 'readonly' : role
+    }
+    return null
+  }
+
+  function syncRbacUser(user: unknown) {
+    const row = user as Partial<RbacUser> | null | undefined
+    const normalizedRole = normalizeRole(row?.role)
+    if (!row?.id || !row?.username || !normalizedRole) {
+      rbacStore.setUser(null)
+      return
+    }
+
+    rbacStore.setUser({
+      id: String(row.id),
+      username: String(row.username),
+      role: normalizedRole,
+      avatar: typeof row.avatar === 'string' ? row.avatar : undefined,
+      createdAt: typeof row.createdAt === 'string' ? row.createdAt : undefined,
+    })
+  }
 
   function setToken(newToken: string | null) {
     token.value = newToken
@@ -33,7 +59,10 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function checkAuth(): Promise<boolean> {
-    if (!token.value) return false
+    if (!token.value) {
+      rbacStore.setUser(null)
+      return false
+    }
     
     try {
       const response = await fetch('/api/auth/check', {
@@ -41,11 +70,14 @@ export const useAuthStore = defineStore('auth', () => {
           'Authorization': `Bearer ${token.value}`,
         },
       })
+      const data = await response.json()
       
       if (response.ok) {
+        syncRbacUser(data.user)
         return true
       } else {
         setToken(null)
+        rbacStore.setUser(null)
         return false
       }
     } catch {
@@ -71,6 +103,9 @@ export const useAuthStore = defineStore('auth', () => {
       if (response.ok && data.ok) {
         if (data.token) {
           setToken(data.token)
+        }
+        if (data.user) {
+          syncRbacUser(data.user)
         }
         loading.value = false
         return true
@@ -100,6 +135,7 @@ export const useAuthStore = defineStore('auth', () => {
       // ignore
     }
     setToken(null)
+    rbacStore.setUser(null)
   }
 
   function getToken(): string | null {

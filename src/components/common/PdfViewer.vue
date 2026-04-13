@@ -35,6 +35,7 @@ const pdfSource = computed(() => {
   return {
     url: props.url,
     httpHeaders: headers,
+    isEvalSupported: false,
   }
 })
 

@@ -330,6 +330,13 @@ export const useChannelManagementStore = defineStore('channel-management', () =>
   async function refreshPlugins(): Promise<void> {
     pluginLastError.value = null
 
+    if (wsStore.state === ConnectionState.CONNECTED && wsStore.gatewayMethods.length === 0) {
+      const startedAt = Date.now()
+      while (wsStore.state === ConnectionState.CONNECTED && wsStore.gatewayMethods.length === 0 && Date.now() - startedAt < 1200) {
+        await new Promise((resolve) => setTimeout(resolve, 100))
+      }
+    }
+
     const hasMethodSnapshot = wsStore.gatewayMethods.length > 0
     if (hasMethodSnapshot && !wsStore.supportsAnyMethod(PLUGIN_LIST_METHODS)) {
       plugins.value = []

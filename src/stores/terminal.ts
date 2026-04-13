@@ -60,13 +60,7 @@ export const useTerminalStore = defineStore('terminal', () => {
       const baseUrl = window.location.origin
       let url = `${baseUrl}/api/terminal/stream`
       const params = new URLSearchParams()
-      
-      const authStore = useAuthStore()
-      const token = authStore.getToken()
-      if (token) {
-        params.append('token', token)
-      }
-      
+
       if (nodeId) {
         params.append('nodeId', nodeId)
       }
