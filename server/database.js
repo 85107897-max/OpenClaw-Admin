@@ -221,6 +221,30 @@ db.exec(`
   );
 `)
 
+// Role permissions junction
+db.exec(`
+  CREATE TABLE IF NOT EXISTS role_permissions (
+    role_id TEXT NOT NULL,
+    permission_id TEXT NOT NULL,
+    created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+    PRIMARY KEY (role_id, permission_id),
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+    FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
+  );
+`)
+
+// User direct permissions junction
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_permissions (
+    user_id TEXT NOT NULL,
+    permission_id TEXT NOT NULL,
+    created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+    PRIMARY KEY (user_id, permission_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
+  );
+`)
+
 // Audit logs table
 db.exec(`
   CREATE TABLE IF NOT EXISTS audit_logs (
@@ -321,6 +345,10 @@ const seedRolesAndPermissions = () => {
     INSERT OR IGNORE INTO roles (id, name, description, permissions, is_system)
     VALUES (?, ?, ?, ?, ?)
   `)
+  const insertRolePermission = db.prepare(`
+    INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+    VALUES (?, ?)
+  `)
 
   for (const p of defaultPermissions) {
     insertPerm.run(p.id, p.name, p.resource, p.action, p.description)
@@ -328,6 +356,9 @@ const seedRolesAndPermissions = () => {
 
   for (const r of defaultRoles) {
     insertRole.run(r.id, r.name, r.description, JSON.stringify(r.permissions), r.is_system)
+    for (const permissionId of r.permissions) {
+      insertRolePermission.run(r.id, permissionId)
+    }
   }
 }
 
@@ -336,6 +367,10 @@ seedRolesAndPermissions()
 // Create indexes for new tables
 try { db.exec('CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)') } catch (e) {}
 try { db.exec('CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)') } catch (e) {}
+try { db.exec('CREATE INDEX IF NOT EXISTS idx_role_permissions_role_id ON role_permissions(role_id)') } catch (e) {}
+try { db.exec('CREATE INDEX IF NOT EXISTS idx_role_permissions_permission_id ON role_permissions(permission_id)') } catch (e) {}
+try { db.exec('CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id ON user_permissions(user_id)') } catch (e) {}
+try { db.exec('CREATE INDEX IF NOT EXISTS idx_user_permissions_permission_id ON user_permissions(permission_id)') } catch (e) {}
 try { db.exec('CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id)') } catch (e) {}
 try { db.exec('CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at)') } catch (e) {}
 try { db.exec('CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action)') } catch (e) {}
